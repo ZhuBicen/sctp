@@ -53,6 +53,8 @@ int main(int argc, char* argv[])
         socklen_t len = sizeof(peeraddr);
         
         char recvbuffer[128];
+        bzero(recvbuffer, 128);
+        
         int msg_flags = 0;
         
         int read_sz = unpd::sctp_recvmsg(sock_fd, recvbuffer,
@@ -67,7 +69,7 @@ int main(int argc, char* argv[])
         std::cout << "From stream = " << sri.sinfo_stream
                   << " seq = " << sri.sinfo_ssn
                   << " assoc_id = " << sri.sinfo_assoc_id
-                  << recv;
+                  << recvbuffer << std::endl;
     }
     
     line = "";
