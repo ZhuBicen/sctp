@@ -5,6 +5,8 @@
 int
 main(int argc, char **argv)
 {
+    std::cout << "Server is started" << std::endl;
+    
 	int sock_fd,msg_flags;
 	char readbuf[1024];
 	struct sockaddr_in servaddr, cliaddr;
@@ -39,7 +41,7 @@ main(int argc, char **argv)
                                    (struct sockaddr*)&cliaddr, &len,
                                    &sri,&msg_flags);
         std::cout << "IP = " << ntohl(cliaddr.sin_addr.s_addr) << ", PORT = " <<  cliaddr.sin_port
-                  << ",  SID = " << sri.sinfo_stream << ", MSG = " << readbuf;
+                  << ",  SID = " << sri.sinfo_stream << ", MSG = " << readbuf << std::endl;
 
 		if(stream_increment) {
 		  sri.sinfo_stream++;

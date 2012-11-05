@@ -8,6 +8,8 @@
 #include <string.h>
 #include <string>
 #include <arpa/inet.h>
+#include <stdlib.h>
+#include <iostream>
 
 namespace unpd{
 
@@ -103,7 +105,42 @@ int inet_pton(int af, const char *src, void *dst)
 {
     return inet_pton(af, src, dst);
 }
+
+
+sctp_assoc_t
+sctp_address_to_associd2(int sock_fd, struct sockaddr *sa, socklen_t salen)
+{
+	struct sctp_paddrinfo sp;
+	socklen_t siz;
+
+	siz = sizeof(struct sctp_paddrinfo);
+	bzero(&sp,siz);
+	memcpy(&sp.spinfo_address, sa, salen);
+	int ret = unpd::sctp_opt_info(sock_fd,0,
+            SCTP_GET_PEER_ADDR_INFO, &sp, &siz);
+
+	if (ret != 0){
+        std::cerr << "sctp_opt_info fatal, ret = " << ret << std::endl;
+        exit(1);
+	}
+	return(sp.spinfo_assoc_id);
+}
     
+
+int 
+sctp_get_no_strms(int sock_fd,struct sockaddr *to, socklen_t tolen)
+{
+	socklen_t retsz;
+	struct sctp_status status;
+	retsz = sizeof(status);	
+	bzero(&status,sizeof(status));
+
+	status.sstat_assoc_id = sctp_address_to_associd2(sock_fd,to,tolen);
+	//printf("The assocation id = %d\n", status.sstat_assoc_id);
+    unpd::getsockopt(sock_fd,IPPROTO_SCTP, SCTP_STATUS,
+		   &status, &retsz);
+	return(status.sstat_outstrms);
+}
 
 }
 
