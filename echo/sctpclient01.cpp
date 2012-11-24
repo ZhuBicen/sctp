@@ -34,6 +34,8 @@ int main(int argc, char* argv[])
     std::string line;
     while(getline(std::cin, line)){
         struct sctp_sndrcvinfo sri;
+        //bzero(&sri, sizeof(sri));
+
         if (line.length() <= 2 || line[0] != '[') {
             std::cout << "Error, line must be of the form '[streamnum]text, eg: [0]Hello" << std::endl;
             line = "";

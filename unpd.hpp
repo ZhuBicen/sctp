@@ -1,6 +1,9 @@
 #ifndef UNPD_HPP
 #define UNPD_HPP
 
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
@@ -10,6 +13,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <iostream>
+#include <sstream>
 
 namespace unpd{
 
@@ -141,6 +145,15 @@ sctp_get_no_strms(int sock_fd,struct sockaddr *to, socklen_t tolen)
 		   &status, &retsz);
 	return(status.sstat_outstrms);
 }
+
+std::string getTextFormIp(u_long ip)
+{
+    std::ostringstream oss;
+    char buffer[256];
+    oss << inet_ntop(AF_INET, &ip, buffer, 256);
+    return oss.str();
+}
+    
 
 }
 

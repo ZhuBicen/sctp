@@ -7,52 +7,72 @@ main(int argc, char **argv)
 {
     std::cout << "Server is started" << std::endl;
     
-	int sock_fd,msg_flags;
-	char readbuf[1024];
-	struct sockaddr_in servaddr, cliaddr;
-	struct sctp_sndrcvinfo sri;
-	struct sctp_event_subscribe evnts;
-	int stream_increment=1;
-	socklen_t len;
-	size_t rd_sz;
+	int stream_increment  = 0;
 
 	if (argc == 2)
 		stream_increment = atoi(argv[1]);
  
-    sock_fd = unpd::socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
+    // create the socket 
+    int sock_fd = unpd::socket(PF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
+
+    // bind the socket 
+    struct sockaddr_in servaddr;
 	bzero(&servaddr, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	servaddr.sin_port = htons(unpd::SERVER_PORT);
-
     unpd::bind(sock_fd, (__CONST_SOCKADDR_ARG) &servaddr, sizeof(servaddr));
 	
+    // register sctp event
+	struct sctp_event_subscribe evnts;
 	bzero(&evnts, sizeof(evnts));
 	evnts.sctp_data_io_event = 1;
     setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS,
 		   &evnts, sizeof(evnts));
 
+    // listen the socket
     unpd::listen(sock_fd, 1024/*LISTENQ*/);
+
+    
 	for ( ; ; ) {
+
+        struct sockaddr_in cliaddr;
+        struct sctp_sndrcvinfo sri;
+        socklen_t len;
 		len = sizeof(struct sockaddr_in);
-        msg_flags = 0;
+        size_t rd_sz;
+        // prepare the read buffer
+        char readbuf[1024];
 		bzero(readbuf, sizeof(readbuf));
+        // message flags
+        int msg_flags = 0;
+
+        // receive messages
 		rd_sz = unpd::sctp_recvmsg(sock_fd, readbuf, sizeof(readbuf),
                                    (struct sockaddr*)&cliaddr, &len,
                                    &sri,&msg_flags);
-        std::cout << "IP = " << ntohl(cliaddr.sin_addr.s_addr) << ", PORT = " <<  cliaddr.sin_port
-                  << ",  SID = " << sri.sinfo_stream << ", MSG = " << readbuf << std::endl;
+        std::cout << "IP = " << unpd::getTextFormIp(cliaddr.sin_addr.s_addr)
+                  << ", PORT = " <<  cliaddr.sin_port
+                  << ", SID = " << sri.sinfo_stream 
+                  << ", AssocationId = " << sri.sinfo_assoc_id
+                  << ", MSG = " << readbuf << std::endl;
 
 		if(stream_increment) {
-		  sri.sinfo_stream++;
-          if(sri.sinfo_stream >= unpd::sctp_get_no_strms(sock_fd,(struct sockaddr*)&cliaddr, len)) 
-			sri.sinfo_stream = 0;
+            sri.sinfo_stream++;
+            if(sri.sinfo_stream >= unpd::sctp_get_no_strms(sock_fd,(struct sockaddr*)&cliaddr, len)) 
+                sri.sinfo_stream = 0;
 		}
-        unpd::sctp_sendmsg(sock_fd, readbuf, rd_sz, 
-                           (struct sockaddr *)&cliaddr, len,
-                           sri.sinfo_ppid,
-                           sri.sinfo_flags,
-                           sri.sinfo_stream,
-                           0, 0);
+        // send back the message
+        int ret = unpd::sctp_sendmsg(sock_fd, readbuf, rd_sz, 
+                                     (struct sockaddr *)&cliaddr, len,
+                                     sri.sinfo_ppid,
+                                     (sri.sinfo_flags),
+                                     sri.sinfo_stream,
+                                     0, 0);
+        if ( ret == -1){
+            std::cout << "Send message size = " << ret << " err = " << unpd::getErrorString() << std::endl;
+            exit(-1);
+        }
+        
 	}
 }
